@@ -1,5 +1,5 @@
 /* LifeLink end-to-end smoke test — every API and flow is exercised. */
-const BASE = 'http://localhost:8081';
+const BASE = 'http://localhost:8080';
 
 let passed = 0;
 let failed = 0;

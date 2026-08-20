@@ -2,6 +2,8 @@
  * LifeLink - REST API client + JWT session handling
  * ========================================================================= */
 
+const API_BASE_URL = 'http://localhost:8080';
+
 class ApiError extends Error {
     constructor(message, status, data) {
         super(message);
@@ -38,7 +40,7 @@ const API = {
 
         let response;
         try {
-            response = await fetch(path, {
+            response = await fetch(API_BASE_URL + path, {
                 method,
                 headers,
                 body: body !== undefined ? JSON.stringify(body) : undefined,

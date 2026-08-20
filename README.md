@@ -9,7 +9,7 @@
 |------------|---------------------------------------------------|
 | Backend    | Java 21, Spring Boot 3.5, Spring Security, JWT     |
 | Data       | Spring Data JPA, Hibernate, Flyway migrations      |
-| Database   | MySQL 8 (Docker)                                  |
+| Database   | MySQL 8 (local)                                   |
 | Frontend   | HTML5, CSS3, JavaScript, Bootstrap 5               |
 | Build      | Maven (wrapper included)                          |
 | Notify     | In-app notifications + email (SMTP, console fallback) |
@@ -17,20 +17,23 @@
 ## Prerequisites
 
 - JDK 21 or newer (JDK 25 verified)
-- Docker + Docker Compose
+- MySQL 8 installed and running locally
 - A browser with internet access for CDN assets (Bootstrap 5, jsPDF)
 
 ## Quick Start
 
-### 1. Start the database
+### 1. Create the local database
 
-```bash
-docker compose up -d
+Run these once against your local MySQL server (e.g. `mysql -u root -p`):
+
+```sql
+CREATE DATABASE lifelink CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'lifelink'@'localhost' IDENTIFIED BY 'lifelink123';
+GRANT ALL PRIVILEGES ON lifelink.* TO 'lifelink'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
-This starts MySQL 8 on host port **3307** (host 3306 is avoided so it never
-clashes with an existing local MySQL). Database `lifelink`, user `lifelink`,
-password `lifelink123` are created automatically.
+Tables are created automatically by Flyway on the first backend startup.
 
 ### 2. Run the backend
 
@@ -41,9 +44,20 @@ password `lifelink123` are created automatically.
 On first run the Maven wrapper downloads Maven + dependencies, Flyway creates
 the schema, and the app seeds an administrator.
 
-The app is served at **http://localhost:8081**.
+The backend API runs at **http://localhost:8080**.
 
-### 3. Use the app
+### 3. Run the frontend
+
+The frontend is a separate static app served from its own dev server:
+
+```bash
+npx serve ../frontend -l 3000
+```
+
+Open **http://localhost:3000** in your browser. It talks to the backend at
+http://localhost:8080 (CORS is already enabled).
+
+### 4. Use the app
 
 | Page            | URL                          | Access         |
 |-----------------|------------------------------|----------------|
