@@ -30,7 +30,6 @@ function setupProfile() {
     document.getElementById('pName').value = currentUser.name || '';
     document.getElementById('pPhone').value = currentUser.phone || '';
     document.getElementById('pBloodGroup').value = currentUser.bloodGroup || '';
-    document.getElementById('pCity').value = currentUser.city || '';
     document.getElementById('pDistrict').value = currentUser.district || '';
     document.getElementById('pAvailable').checked = !!currentUser.available;
     document.getElementById('pAvailableLabel').textContent = currentUser.available ? 'Available to donate' : 'Unavailable';
@@ -105,7 +104,6 @@ function setupProfile() {
                 name: name.value.trim(),
                 phone: phone.value.trim(),
                 bloodGroup: document.getElementById('pBloodGroup').value || null,
-                city: document.getElementById('pCity').value.trim() || null,
                 district: document.getElementById('pDistrict').value.trim() || null,
                 latitude: isNaN(lat) ? null : lat,
                 longitude: isNaN(lng) ? null : lng,

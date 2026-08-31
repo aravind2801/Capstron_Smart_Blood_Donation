@@ -15,8 +15,6 @@ public record UserProfileUpdateRequest(
 
         String bloodGroup,
 
-        String city,
-
         String district,
 
         Double latitude,

@@ -25,8 +25,6 @@ public record RegisterRequest(
 
         String bloodGroup,
 
-        String city,
-
         String district,
 
         Double latitude,

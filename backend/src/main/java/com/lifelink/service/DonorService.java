@@ -17,9 +17,9 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Donor discovery. Donors are ranked same-city first, then by straight-line
+ * Donor discovery. Donors are ranked by straight-line
  * distance (Haversine). When coordinates are unavailable, matching falls back
- * to city/district equality.
+ * to district equality.
  */
 @Service
 public class DonorService {
@@ -47,7 +47,6 @@ public class DonorService {
         User requester = userRepository.findById(currentUserId).orElseThrow();
         Double originLat = latitude != null ? latitude : requester.getLatitude();
         Double originLng = longitude != null ? longitude : requester.getLongitude();
-        String originCity = requester.getCity();
 
         List<DonorCardResponse> ranked = new ArrayList<>();
         for (User donor : candidates) {
@@ -56,10 +55,9 @@ public class DonorService {
         }
 
         ranked.sort(Comparator
-                .comparing((DonorCardResponse donor) -> sameCity(originCity, donor.city()) ? 0 : 1)
-                .thenComparing(DonorCardResponse::distanceKm,
+                .comparing(DonorCardResponse::distanceKm,
                         Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(DonorCardResponse::city, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(DonorCardResponse::district, Comparator.nullsLast(Comparator.naturalOrder()))
                 .thenComparing(DonorCardResponse::name));
 
         int total = ranked.size();
@@ -70,11 +68,11 @@ public class DonorService {
         return new PageResponse<>(content, page, size, total, totalPages);
     }
 
-    /**
-     * Donors that should be alerted about a new request: available, matching
-     * blood group, within the configured radius (fallback to same
-     * city/district when coordinates are missing).
-     */
+     /**
+      * Donors that should be alerted about a new request: available, matching
+      * blood group, within the configured radius (fallback to same
+      * district when coordinates are missing).
+      */
     @Transactional(readOnly = true)
     public List<DonorMatch> findMatchingDonors(BloodRequest request) {
         User patient = request.getPatient();
@@ -90,22 +88,13 @@ public class DonorService {
                     donor.getLatitude(), donor.getLongitude());
             boolean withinRadius = !distance.isInfinite() && distance <= maxDistanceKm;
             boolean sameAreaFallback = distance.isInfinite()
-                    && (sameCityIgnoreCase(patient.getCity(), donor.getCity())
-                    || sameDistrictIgnoreCase(patient.getDistrict(), donor.getDistrict()));
+                    && sameDistrictIgnoreCase(patient.getDistrict(), donor.getDistrict());
             if (withinRadius || sameAreaFallback) {
                 matches.add(new DonorMatch(donor, distance.isInfinite() ? null : round(distance)));
             }
         }
         matches.sort(Comparator.comparing(m -> m.distanceKm() == null ? Double.MAX_VALUE : m.distanceKm()));
         return matches;
-    }
-
-    private static boolean sameCity(String a, String b) {
-        return a != null && a.equalsIgnoreCase(b);
-    }
-
-    private static boolean sameCityIgnoreCase(String a, String b) {
-        return a != null && b != null && a.trim().equalsIgnoreCase(b.trim());
     }
 
     private static boolean sameDistrictIgnoreCase(String a, String b) {

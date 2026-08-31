@@ -59,7 +59,7 @@ class AuthServiceTest {
 
         RegisterRequest payload = new RegisterRequest(
                 "John Donor", " donor@test.com ", "1234567890", "password123",
-                "DONOR", "A+", "Chennai", "Chennai", 13.0, 80.0, true);
+                "DONOR", "A+", "Chennai", 13.0, 80.0, true);
 
         AuthResponse response = authService.register(payload);
 
@@ -80,7 +80,7 @@ class AuthServiceTest {
 
         RegisterRequest payload = new RegisterRequest(
                 "John Donor", "donor@test.com", "1234567890", "password123",
-                "DONOR", "A+", "Chennai", "Chennai", null, null, true);
+                "DONOR", "A+", "Chennai", null, null, true);
 
         assertThrows(DuplicateResourceException.class, () -> authService.register(payload));
     }
@@ -92,7 +92,7 @@ class AuthServiceTest {
 
         RegisterRequest payload = new RegisterRequest(
                 "John Donor", "donor@test.com", "1234567890", "password123",
-                "DONOR", null, "Chennai", "Chennai", null, null, true);
+                "DONOR", null, "Chennai", null, null, true);
 
         assertThrows(BadRequestException.class, () -> authService.register(payload));
     }
@@ -101,7 +101,7 @@ class AuthServiceTest {
     void registerRejectsAdminRole() {
         RegisterRequest payload = new RegisterRequest(
                 "Admin", "admin2@test.com", "1234567890", "password123",
-                "ADMIN", null, null, null, null, null, false);
+                "ADMIN", null, null, null, null, false);
 
         assertThrows(BadRequestException.class, () -> authService.register(payload));
     }

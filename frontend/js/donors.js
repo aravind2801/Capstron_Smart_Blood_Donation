@@ -6,7 +6,7 @@ function donorCardHtml(donor) {
     const photo = donor.photo
         ? `<img class="donor-avatar" src="${esc(donor.photo)}" alt="${esc(donor.name)}">`
         : `<div class="donor-initials">${esc(initials(donor.name))}</div>`;
-    const location = [donor.city, donor.district].filter(Boolean).join(', ');
+    const location = donor.district || '';
 
     return `
         <div class="col-md-6 col-lg-4 col-xl-3">
@@ -21,7 +21,7 @@ function donorCardHtml(donor) {
                     <p class="donor-distance mb-1"><i class="bi bi-signpost-split me-1"></i>${distanceText(donor.distanceKm)}</p>
                     <p class="donor-meta mb-2"><i class="bi bi-calendar-heart me-1"></i>Last donation: ${formatDate(donor.lastDonationDate)}</p>
                     <div class="mt-auto pt-2">
-                        <button class="btn btn-lifelink w-100 btn-sm" data-request-group="${esc(donor.bloodGroup)}">
+                        <button class="btn btn-lifelink w-100 btn-sm" data-donor-id="${donor.id}" data-request-group="${esc(donor.bloodGroup)}">
                             <i class="bi bi-heart-pulse-fill me-1"></i>Request Blood
                         </button>
                     </div>
@@ -82,6 +82,7 @@ function renderPagination(pageData, containerId, onPageChange) {
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-request-group]');
     if (btn) {
-        openRequestModal({ bloodGroup: btn.dataset.requestGroup });
+        const donorId = btn.dataset.donorId ? Number(btn.dataset.donorId) : null;
+        openRequestModal({ bloodGroup: btn.dataset.requestGroup, donorId: donorId });
     }
 });

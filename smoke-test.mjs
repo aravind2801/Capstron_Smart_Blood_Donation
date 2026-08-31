@@ -29,10 +29,10 @@ const stamp = Date.now();
 const email = (name) => `${name}${stamp}@test.com`;
 const uniq = (name) => `smoke-${name}-${stamp}`;
 
-const DONOR1 = { name: uniq('donor1'), email: email('donor1'), phone: '9100' + stamp.toString().slice(-6), password: 'Password@123', role: 'DONOR', bloodGroup: 'A+', city: 'Chennai', district: 'Chennai', latitude: 13.0827, longitude: 80.2707, available: true };
-const DONOR2 = { name: uniq('donor2'), email: email('donor2'), phone: '9101' + stamp.toString().slice(-6), password: 'Password@123', role: 'DONOR', bloodGroup: 'A+', city: 'Bangalore', district: 'Bangalore', latitude: 12.9716, longitude: 77.5946, available: true };
-const DONOR3 = { name: uniq('donor3'), email: email('donor3'), phone: '9102' + stamp.toString().slice(-6), password: 'Password@123', role: 'DONOR', bloodGroup: 'B+', city: 'Chennai', district: 'Chennai', latitude: 13.0827, longitude: 80.2707, available: true };
-const PATIENT = { name: uniq('patient'), email: email('patient'), phone: '9103' + stamp.toString().slice(-6), password: 'Password@123', role: 'PATIENT', bloodGroup: 'A+', city: 'Chennai', district: 'Chennai', latitude: 13.0827, longitude: 80.2707, available: false };
+const DONOR1 = { name: uniq('donor1'), email: email('donor1'), phone: '9100' + stamp.toString().slice(-6), password: 'Password@123', role: 'DONOR', bloodGroup: 'A+', district: 'Chennai', latitude: 13.0827, longitude: 80.2707, available: true };
+const DONOR2 = { name: uniq('donor2'), email: email('donor2'), phone: '9101' + stamp.toString().slice(-6), password: 'Password@123', role: 'DONOR', bloodGroup: 'A+', district: 'Bangalore', latitude: 12.9716, longitude: 77.5946, available: true };
+const DONOR3 = { name: uniq('donor3'), email: email('donor3'), phone: '9102' + stamp.toString().slice(-6), password: 'Password@123', role: 'DONOR', bloodGroup: 'B+', district: 'Chennai', latitude: 13.0827, longitude: 80.2707, available: true };
+const PATIENT = { name: uniq('patient'), email: email('patient'), phone: '9103' + stamp.toString().slice(-6), password: 'Password@123', role: 'PATIENT', bloodGroup: 'A+', district: 'Chennai', latitude: 13.0827, longitude: 80.2707, available: false };
 
 const token = { donor1: null, donor2: null, donor3: null, patient: null, admin: null };
 
@@ -95,7 +95,7 @@ async function main() {
     const d2 = searchList.find(d => d.name === DONOR2.name);
     const idx1 = searchList.indexOf(d1);
     const idx2 = searchList.indexOf(d2);
-    check('same-city donor ranked before far donor', d1 && d2 && idx1 !== -1 && idx2 !== -1 && idx1 < idx2, `${DONOR1.city}=${idx1}, ${DONOR2.city}=${idx2}`);
+    check('near donor ranked before far donor', d1 && d2 && idx1 !== -1 && idx2 !== -1 && idx1 < idx2, `${DONOR1.district}=${idx1}, ${DONOR2.district}=${idx2}`);
     check('distance computed (near donor < far donor)',
         d1 && d2 && d1.distanceKm < d2.distanceKm, `near=${d1?.distanceKm} far=${d2?.distanceKm}`);
     check('donor3 (B+) excluded', !searchList.some(d => d.name === DONOR3.name));
@@ -193,7 +193,7 @@ async function main() {
     check('donor lastDonationDate set to today', r.data?.lastDonationDate === new Date().toISOString().slice(0, 10), r.data?.lastDonationDate);
 
     /* ---------- profile update ---------- */
-    r = await api('PUT', '/api/user/profile', { name: DONOR1.name, phone: DONOR1.phone, bloodGroup: 'A+', city: 'Chennai', district: 'Chennai', latitude: 13.0827, longitude: 80.2707, available: true }, token.donor1);
+    r = await api('PUT', '/api/user/profile', { name: DONOR1.name, phone: DONOR1.phone, bloodGroup: 'A+', district: 'Chennai', latitude: 13.0827, longitude: 80.2707, available: true }, token.donor1);
     check('update profile', r.status === 200 && r.data.name === DONOR1.name, r.status);
 
     r = await api('PUT', '/api/user/availability', { available: false }, token.donor1);

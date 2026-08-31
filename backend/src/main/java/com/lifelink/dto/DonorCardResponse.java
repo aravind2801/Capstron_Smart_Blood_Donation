@@ -10,7 +10,6 @@ public record DonorCardResponse(
         String name,
         String photo,
         BloodGroup bloodGroup,
-        String city,
         String district,
         Double distanceKm,
         LocalDate lastDonationDate
@@ -21,7 +20,6 @@ public record DonorCardResponse(
                 donor.getName(),
                 donor.getPhoto(),
                 donor.getBloodGroup(),
-                donor.getCity(),
                 donor.getDistrict(),
                 distanceKm,
                 donor.getLastDonationDate()

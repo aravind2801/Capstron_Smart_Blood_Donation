@@ -32,7 +32,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByRole(Role role);
 
-    @Query("SELECT u FROM User u WHERE u.role = :role AND u.available = true AND u.bloodGroup = :bloodGroup AND u.id <> :excludeId ORDER BY u.city, u.district")
+    @Query("SELECT u FROM User u WHERE u.role = :role AND u.available = true AND u.bloodGroup = :bloodGroup AND u.id <> :excludeId ORDER BY u.district")
     List<User> findAvailableDonors(@Param("role") Role role,
                                    @Param("bloodGroup") BloodGroup bloodGroup,
                                    @Param("excludeId") Long excludeId);

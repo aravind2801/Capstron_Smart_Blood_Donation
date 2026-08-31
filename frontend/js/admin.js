@@ -69,7 +69,7 @@ async function loadUsers(page) {
                 <td>${esc(u.phone)}</td>
                 <td>${roleBadge(u.role)}</td>
                 <td>${u.bloodGroup ? `<span class="bg-chip">${esc(u.bloodGroup)}</span>` : '—'}</td>
-                <td>${esc(u.city || '—')}</td>
+                <td>${esc(u.district || '—')}</td>
                 <td>${u.available ? '<span class="text-success fw-bold">Yes</span>' : '<span class="text-muted">No</span>'}</td>
                 <td class="text-nowrap">${formatDate(u.createdAt)}</td>
             </tr>`).join('') : emptyRow(8);

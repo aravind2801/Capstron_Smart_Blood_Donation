@@ -16,7 +16,7 @@ public final class EmailTemplates {
 
     public static String donationRequestToDonor(User donor, BloodRequest request, Double distanceKm) {
         String distanceText = distanceKm == null || distanceKm.isInfinite()
-                ? "Your city / district"
+                ? "Your district"
                 : String.format(Locale.US, "%.1f km from you", distanceKm);
         String emergencyBadge = request.isEmergency()
                 ? "<p style=\"color:#b91c1c;font-weight:700;font-size:15px;\">\u26A0 EMERGENCY REQUEST</p>"
@@ -57,7 +57,6 @@ public final class EmailTemplates {
                         + "<li><strong>Name:</strong> " + escape(donor.getName()) + "</li>"
                         + "<li><strong>Phone:</strong> " + escape(donor.getPhone()) + "</li>"
                         + "<li><strong>Blood group:</strong> " + donor.getBloodGroup().getValue() + "</li>"
-                        + "<li><strong>City:</strong> " + escape(orDash(donor.getCity())) + "</li>"
                         + "<li><strong>Estimated arrival:</strong> ~" + arrival + " minutes</li>"
                         + "</ul>"
                         + "<p>Please contact the donor to coordinate the donation.</p>"

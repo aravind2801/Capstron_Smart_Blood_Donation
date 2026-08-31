@@ -55,6 +55,11 @@ async function setupHome() {
 
     document.getElementById('homeLocateBtn').addEventListener('click', captureLocation);
     document.getElementById('homeSearchBtn').addEventListener('click', () => loadDonors(0));
+    document.getElementById('homeBloodGroup').addEventListener('change', () => loadDonors(0));
+    document.getElementById('homeSearchForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        loadDonors(0);
+    });
 
     if (currentUser.latitude && currentUser.longitude) {
         document.getElementById('homeLocText').value = 'Using your saved location';

@@ -24,12 +24,10 @@ public record BloodRequestResponse(
         Long patientId,
         Double patientLatitude,
         Double patientLongitude,
-        String patientCity,
 
         Long donorId,
         String donorName,
         String donorPhone,
-        String donorCity,
         String donorPhoto,
         Double donorLatitude,
         Double donorLongitude
@@ -53,12 +51,10 @@ public record BloodRequestResponse(
                 request.getPatient().getId(),
                 request.getPatient().getLatitude(),
                 request.getPatient().getLongitude(),
-                request.getPatient().getCity(),
 
                 request.getDonor() != null ? request.getDonor().getId() : null,
                 request.getDonor() != null ? request.getDonor().getName() : null,
                 request.getDonor() != null ? request.getDonor().getPhone() : null,
-                request.getDonor() != null ? request.getDonor().getCity() : null,
                 request.getDonor() != null ? request.getDonor().getPhoto() : null,
                 request.getDonor() != null ? request.getDonor().getLatitude() : null,
                 request.getDonor() != null ? request.getDonor().getLongitude() : null

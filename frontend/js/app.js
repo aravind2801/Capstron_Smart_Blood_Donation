@@ -29,7 +29,6 @@ function isAdmin() {
 function buildNavbar(active) {
     const links = [
         { key: 'home', href: 'home.html', label: 'Home', icon: 'bi-house-door-fill' },
-        { key: 'search', href: 'search.html', label: 'Search Donors', icon: 'bi-search' },
         { key: 'request', href: 'request.html', label: 'Requests', icon: 'bi-clipboard2-heart-fill' },
         { key: 'history', href: 'history.html', label: 'History', icon: 'bi-clock-history' },
     ];

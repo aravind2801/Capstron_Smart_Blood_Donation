@@ -80,7 +80,7 @@ public class AdminService {
         }
         String term = search.trim().toLowerCase(Locale.ROOT);
         return contains(user.name(), term) || contains(user.email(), term)
-                || contains(user.phone(), term) || contains(user.city(), term)
+                || contains(user.phone(), term)
                 || contains(user.district(), term)
                 || contains(user.bloodGroup() == null ? null : user.bloodGroup().getValue(), term);
     }

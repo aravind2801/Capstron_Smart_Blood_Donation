@@ -199,7 +199,6 @@ function setupRegister() {
                 password: password.value,
                 role,
                 bloodGroup: bloodGroup || null,
-                city: get('city').value.trim() || null,
                 district: get('district').value.trim() || null,
                 latitude: latField.value ? parseFloat(latField.value) : null,
                 longitude: lngField.value ? parseFloat(lngField.value) : null,

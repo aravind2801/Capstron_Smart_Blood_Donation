@@ -90,7 +90,6 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole(role);
         user.setBloodGroup(bloodGroup);
-        user.setCity(trimToNull(request.city()));
         user.setDistrict(trimToNull(request.district()));
         user.setAvailable(request.available());
         user.setLatitude(request.latitude());

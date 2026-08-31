@@ -121,6 +121,15 @@ async function submitBloodRequest() {
         valid = false;
     }
 
+    const phoneVal = get('reqPhone').value.trim();
+    if (!/^[0-9]{10}$/.test(phoneVal)) {
+        get('reqPhone').classList.add('is-invalid');
+        valid = false;
+        showToast('Mobile number must be exactly 10 digits', 'warning');
+    } else {
+        get('reqPhone').classList.remove('is-invalid');
+    }
+
     if (!valid) {
         showToast('Please fix the highlighted fields', 'warning');
         return;
@@ -140,6 +149,7 @@ async function submitBloodRequest() {
             units,
             reason: get('reqReason').value.trim() || null,
             emergency: get('reqEmergency').checked,
+            donorId: requestModalPrefill.donorId || null,
             latitude: lat,
             longitude: lng,
         });
@@ -161,7 +171,7 @@ function requestStatusCard(request) {
             <span class="bg-chip">${esc(request.bloodGroup)}</span>
             <div>
                 <div class="fw-semibold">${esc(request.donorName)}</div>
-                <div class="small text-muted">${esc(request.donorPhone || '')}${request.donorCity ? ' &middot; ' + esc(request.donorCity) : ''}</div>
+                <div class="small text-muted">${esc(request.donorPhone || '')}</div>
             </div>
             ${isPatient && request.status === 'ACCEPTED' ? `
                 <a href="tel:${esc(request.donorPhone)}" class="btn btn-success-soft btn-sm ms-auto">

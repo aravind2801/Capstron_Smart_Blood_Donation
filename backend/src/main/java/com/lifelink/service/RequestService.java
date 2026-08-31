@@ -40,6 +40,7 @@ public class RequestService {
     private final DonorService donorService;
     private final NotificationService notificationService;
     private final EmailService emailService;
+    private final SmsService smsService;
 
     public RequestService(BloodRequestRepository requestRepository,
                           DonationHistoryRepository historyRepository,
@@ -47,7 +48,8 @@ public class RequestService {
                           UserRepository userRepository,
                           DonorService donorService,
                           NotificationService notificationService,
-                          EmailService emailService) {
+                          EmailService emailService,
+                          SmsService smsService) {
         this.requestRepository = requestRepository;
         this.historyRepository = historyRepository;
         this.notificationRepository = notificationRepository;
@@ -55,6 +57,7 @@ public class RequestService {
         this.donorService = donorService;
         this.notificationService = notificationService;
         this.emailService = emailService;
+        this.smsService = smsService;
     }
 
     // ------------------------------------------------------------------
@@ -79,7 +82,27 @@ public class RequestService {
         request.setStatus(RequestStatus.PENDING);
         requestRepository.save(request);
 
-        alertMatchingDonors(request);
+        if (payload.donorId() != null) {
+            // Targeted flow: request stays associated with selected donor only
+            userRepository.findById(payload.donorId()).ifPresent(donor -> {
+                if (donor.getRole() == Role.DONOR) {
+                    Double distance = Haversine.distanceKm(request.getPatient().getLatitude(), request.getPatient().getLongitude(), donor.getLatitude(), donor.getLongitude());
+                    String title = request.isEmergency() ? "Emergency Blood Request" : "New Blood Request";
+                    String distanceText = distance == null || distance.isInfinite() ? "your district" : String.format("%.1f km from you", distance);
+                    String message = request.isEmergency()
+                            ? "EMERGENCY! " + request.getPatientName() + " needs " + request.getUnits() + " unit(s) of " + request.getBloodGroup().getValue() + " at " + request.getHospitalName() + ". " + distanceText + "."
+                            : request.getPatientName() + " needs " + request.getUnits() + " unit(s) of " + request.getBloodGroup().getValue() + " at " + request.getHospitalName() + ". " + distanceText + ".";
+                    notificationService.create(donor.getId(), title, message, request.getId());
+                    emailService.sendDonationRequestToDonor(donor.getEmail(), donor, request, distance != null && !distance.isInfinite() ? distance : null);
+                    if (donor.getPhone() != null && !donor.getPhone().isBlank()) {
+                        String smsText = "LifeLink: " + request.getPatientName() + " needs " + request.getBloodGroup().getValue() + " blood at " + request.getHospitalName() + " (" + request.getUnits() + " units). Patient: " + request.getPatientName() + " Phone: " + request.getPhone() + ". Please check LifeLink app.";
+                        smsService.sendSms(donor.getPhone(), smsText);
+                    }
+                }
+            });
+        } else {
+            alertMatchingDonors(request);
+        }
         return BloodRequestResponse.from(request);
     }
 
@@ -89,7 +112,7 @@ public class RequestService {
 
         for (DonorService.DonorMatch match : matches) {
             String distanceText = match.distanceKm() == null
-                    ? "your city / district"
+                    ? "your district"
                     : String.format("%.1f km from you", match.distanceKm());
             String message = request.isEmergency()
                     ? "EMERGENCY! " + request.getPatientName() + " needs " + request.getUnits()
@@ -138,7 +161,6 @@ public class RequestService {
         String message = "Your blood request has been accepted.\nDonor: " + donor.getName()
                 + "\nPhone: " + donor.getPhone()
                 + "\nBlood group: " + donor.getBloodGroup().getValue()
-                + "\nCity: " + (donor.getCity() == null ? "N/A" : donor.getCity())
                 + "\nEstimated arrival: ~" + arrival + " minutes.";
         notificationService.create(request.getPatient().getId(), "Your request has been accepted", message, request.getId());
         emailService.sendRequestAcceptedToPatient(request.getPatient().getEmail(), donor, request);

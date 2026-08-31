@@ -18,7 +18,7 @@ public record BloodRequestCreateRequest(
         String patientName,
 
         @NotBlank(message = "Phone number is required")
-        @Pattern(regexp = "^[+]?[0-9 ]{7,15}$", message = "Please provide a valid phone number")
+        @Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be exactly 10 digits")
         String phone,
 
         @NotNull(message = "Required units is required")
@@ -30,6 +30,8 @@ public record BloodRequestCreateRequest(
         String reason,
 
         boolean emergency,
+
+        Long donorId,
 
         Double latitude,
 

@@ -32,9 +32,6 @@ public class User {
     private Role role;
 
     @Column(length = 100)
-    private String city;
-
-    @Column(length = 100)
     private String district;
 
     @Column(name = "blood_group", length = 5)
@@ -107,14 +104,6 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public void setCity(String city) {
-        this.city = city;
     }
 
     public String getDistrict() {

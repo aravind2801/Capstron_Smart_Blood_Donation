@@ -50,7 +50,6 @@ public class UserService {
             user.setBloodGroup(BloodGroup.from(request.bloodGroup()));
         }
 
-        user.setCity(trimToNull(request.city()));
         user.setDistrict(trimToNull(request.district()));
         user.setAvailable(request.available());
 
