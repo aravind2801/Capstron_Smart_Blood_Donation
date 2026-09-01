@@ -12,12 +12,17 @@ import com.lifelink.enums.RequestStatus;
 import com.lifelink.enums.Role;
 import com.lifelink.exception.BadRequestException;
 import com.lifelink.exception.ResourceNotFoundException;
+import com.lifelink.entity.RequestEmailToken;
 import com.lifelink.repository.BloodRequestRepository;
 import com.lifelink.repository.DonationHistoryRepository;
 import com.lifelink.repository.NotificationRepository;
+import com.lifelink.repository.RequestEmailTokenRepository;
 import com.lifelink.repository.UserRepository;
 import com.lifelink.util.Haversine;
 import org.springframework.stereotype.Service;
+
+import java.security.SecureRandom;
+import java.util.HexFormat;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -41,6 +46,7 @@ public class RequestService {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final SmsService smsService;
+    private final RequestEmailTokenRepository emailTokenRepository;
 
     public RequestService(BloodRequestRepository requestRepository,
                           DonationHistoryRepository historyRepository,
@@ -49,7 +55,8 @@ public class RequestService {
                           DonorService donorService,
                           NotificationService notificationService,
                           EmailService emailService,
-                          SmsService smsService) {
+                          SmsService smsService,
+                          RequestEmailTokenRepository emailTokenRepository) {
         this.requestRepository = requestRepository;
         this.historyRepository = historyRepository;
         this.notificationRepository = notificationRepository;
@@ -58,6 +65,7 @@ public class RequestService {
         this.notificationService = notificationService;
         this.emailService = emailService;
         this.smsService = smsService;
+        this.emailTokenRepository = emailTokenRepository;
     }
 
     // ------------------------------------------------------------------
@@ -83,30 +91,38 @@ public class RequestService {
         requestRepository.save(request);
 
         if (payload.donorId() != null) {
-            // Targeted flow: request stays associated with selected donor only
-            userRepository.findById(payload.donorId()).ifPresent(donor -> {
-                if (donor.getRole() == Role.DONOR) {
-                    Double distance = Haversine.distanceKm(request.getPatient().getLatitude(), request.getPatient().getLongitude(), donor.getLatitude(), donor.getLongitude());
-                    String title = request.isEmergency() ? "Emergency Blood Request" : "New Blood Request";
-                    String distanceText = distance == null || distance.isInfinite() ? "your district" : String.format("%.1f km from you", distance);
-                    String message = request.isEmergency()
-                            ? "EMERGENCY! " + request.getPatientName() + " needs " + request.getUnits() + " unit(s) of " + request.getBloodGroup().getValue() + " at " + request.getHospitalName() + ". " + distanceText + "."
-                            : request.getPatientName() + " needs " + request.getUnits() + " unit(s) of " + request.getBloodGroup().getValue() + " at " + request.getHospitalName() + ". " + distanceText + ".";
-                    notificationService.create(donor.getId(), title, message, request.getId());
-                    emailService.sendDonationRequestToDonor(donor.getEmail(), donor, request, distance != null && !distance.isInfinite() ? distance : null);
-                    if (donor.getPhone() != null && !donor.getPhone().isBlank()) {
-                        String smsText = "LifeLink: " + request.getPatientName() + " needs " + request.getBloodGroup().getValue() + " blood at " + request.getHospitalName() + " (" + request.getUnits() + " units). Patient: " + request.getPatientName() + " Phone: " + request.getPhone() + ". Please check LifeLink app.";
-                        smsService.sendSms(donor.getPhone(), smsText);
-                    }
-                }
-            });
+            // Targeted flow: must find donor, fail fast if not found or not a donor - ensures mail to receiver
+            User donor = userRepository.findById(payload.donorId())
+                    .orElseThrow(() -> new BadRequestException("Selected donor not found"));
+            if (donor.getRole() != Role.DONOR) {
+                throw new BadRequestException("Selected user is not a donor");
+            }
+            if (donor.getEmail() == null || donor.getEmail().isBlank()) {
+                throw new BadRequestException("Selected donor has no registered email");
+            }
+            Double distance = Haversine.distanceKm(request.getPatient().getLatitude(), request.getPatient().getLongitude(), donor.getLatitude(), donor.getLongitude());
+            String title = request.isEmergency() ? "Emergency Blood Request" : "New Blood Request";
+            String distanceText = distance == null || distance.isInfinite() ? "your district" : String.format("%.1f km from you", distance);
+            String message = request.isEmergency()
+                    ? "EMERGENCY! " + request.getPatientName() + " needs " + request.getUnits() + " unit(s) of " + request.getBloodGroup().getValue() + " at " + request.getHospitalName() + ". " + distanceText + "."
+                    : request.getPatientName() + " needs " + request.getUnits() + " unit(s) of " + request.getBloodGroup().getValue() + " at " + request.getHospitalName() + ". " + distanceText + ".";
+            notificationService.create(donor.getId(), title, message, request.getId());
+            // Generate secure tokens for Accept/Decline email links
+            String acceptToken = generateEmailToken(request, donor, "ACCEPT");
+            String declineToken = generateEmailToken(request, donor, "DECLINE");
+            // Send to donor's registered email via Nodemailer/Java (uses donor.getEmail() as receiver mail)
+            emailService.sendDonorNotificationMail(donor.getEmail(), donor, request, patient, payload.patientAge(), payload.requiredDate(), distance != null && !distance.isInfinite() ? distance : null, acceptToken, declineToken);
+            if (donor.getPhone() != null && !donor.getPhone().isBlank()) {
+                String smsText = "LifeLink: " + request.getPatientName() + " needs " + request.getBloodGroup().getValue() + " blood at " + request.getHospitalName() + " (" + request.getUnits() + " units). Patient: " + request.getPatientName() + " Phone: " + request.getPhone() + ". Please check LifeLink app.";
+                smsService.sendSms(donor.getPhone(), smsText);
+            }
         } else {
-            alertMatchingDonors(request);
+            alertMatchingDonors(request, patient, payload);
         }
         return BloodRequestResponse.from(request);
     }
 
-    private void alertMatchingDonors(BloodRequest request) {
+    private void alertMatchingDonors(BloodRequest request, User patient, BloodRequestCreateRequest payload) {
         List<DonorService.DonorMatch> matches = donorService.findMatchingDonors(request);
         String title = request.isEmergency() ? "Emergency Blood Request" : "New Blood Request";
 
@@ -122,8 +138,15 @@ public class RequestService {
                     + " unit(s) of " + request.getBloodGroup().getValue() + " at "
                     + request.getHospitalName() + ". " + distanceText + ".";
             notificationService.create(match.donor().getId(), title, message, request.getId());
-            emailService.sendDonationRequestToDonor(match.donor().getEmail(), match.donor(), request, match.distanceKm());
+            // Generate tokens for email links even in broadcast (per donor)
+            String acceptToken = generateEmailToken(request, match.donor(), "ACCEPT");
+            String declineToken = generateEmailToken(request, match.donor(), "DECLINE");
+            emailService.sendDonorNotificationMail(match.donor().getEmail(), match.donor(), request, patient, payload != null ? payload.patientAge() : null, payload != null ? payload.requiredDate() : null, match.distanceKm(), acceptToken, declineToken);
         }
+    }
+
+    private void alertMatchingDonors(BloodRequest request) {
+        alertMatchingDonors(request, request.getPatient(), null);
     }
 
     // ------------------------------------------------------------------
@@ -322,6 +345,55 @@ public class RequestService {
                 .filter(r -> !declined.contains(r.getId()))
                 .map(BloodRequestResponse::from)
                 .toList();
+    }
+
+    // ------------------------------------------------------------------
+    // Email token handling (Accept/Decline via email link)
+    // ------------------------------------------------------------------
+
+    private String generateEmailToken(BloodRequest request, User donor, String action) {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        String token = HexFormat.of().formatHex(bytes);
+        RequestEmailToken emailToken = new RequestEmailToken();
+        emailToken.setToken(token);
+        emailToken.setRequest(request);
+        emailToken.setDonor(donor);
+        emailToken.setAction(action);
+        emailToken.setUsed(false);
+        emailToken.setExpiryDate(LocalDateTime.now().plusDays(7));
+        emailTokenRepository.save(emailToken);
+        return token;
+    }
+
+    @Transactional
+    public BloodRequestResponse handleEmailAccept(String token) {
+        RequestEmailToken emailToken = emailTokenRepository.findByToken(token)
+                .orElseThrow(() -> new BadRequestException("Invalid or expired link"));
+        if (emailToken.isUsed()) {
+            throw new BadRequestException("This link has already been used");
+        }
+        if (emailToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("This link has expired");
+        }
+        emailToken.setUsed(true);
+        emailTokenRepository.save(emailToken);
+        return accept(emailToken.getRequest().getId(), emailToken.getDonor().getId());
+    }
+
+    @Transactional
+    public MessageResponse handleEmailDecline(String token) {
+        RequestEmailToken emailToken = emailTokenRepository.findByToken(token)
+                .orElseThrow(() -> new BadRequestException("Invalid or expired link"));
+        if (emailToken.isUsed()) {
+            throw new BadRequestException("This link has already been used");
+        }
+        if (emailToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("This link has expired");
+        }
+        emailToken.setUsed(true);
+        emailTokenRepository.save(emailToken);
+        return reject(emailToken.getRequest().getId(), emailToken.getDonor().getId());
     }
 
     // ------------------------------------------------------------------

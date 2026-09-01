@@ -33,6 +33,10 @@ public record BloodRequestCreateRequest(
 
         Long donorId,
 
+        Integer patientAge,
+
+        String requiredDate,
+
         Double latitude,
 
         Double longitude

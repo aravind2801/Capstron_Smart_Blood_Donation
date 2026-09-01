@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -69,5 +70,25 @@ public class RequestController {
     @PutMapping("/{id}/cancel")
     public ResponseEntity<BloodRequestResponse> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(requestService.cancel(id, currentUserService.getCurrentUserId()));
+    }
+
+    @GetMapping("/email-accept")
+    public ResponseEntity<?> emailAccept(@RequestParam String token) {
+        try {
+            BloodRequestResponse response = requestService.handleEmailAccept(token);
+            return ResponseEntity.ok(response);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(new MessageResponse(ex.getMessage()));
+        }
+    }
+
+    @GetMapping("/email-decline")
+    public ResponseEntity<?> emailDecline(@RequestParam String token) {
+        try {
+            MessageResponse response = requestService.handleEmailDecline(token);
+            return ResponseEntity.ok(response);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(new MessageResponse(ex.getMessage()));
+        }
     }
 }

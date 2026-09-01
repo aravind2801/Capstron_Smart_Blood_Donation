@@ -348,6 +348,15 @@ img {
     font-weight: 700;
     font-size: 1.05rem;
     margin: 0;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.donor-card .bg-chip {
+    flex-shrink: 0;
 }
 
 .donor-card .donor-meta {

@@ -57,6 +57,14 @@ function openRequestModal(options) {
                                     <input type="tel" class="form-control" id="reqPhone" required>
                                     <div class="invalid-feedback">A contact phone number is required.</div>
                                 </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Patient Age</label>
+                                    <input type="number" class="form-control" id="reqPatientAge" min="0" max="120" placeholder="e.g. 25">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Required By</label>
+                                    <input type="date" class="form-control" id="reqRequiredDate">
+                                </div>
                                 <div class="col-12">
                                     <label class="form-label">Hospital Name *</label>
                                     <input type="text" class="form-control" id="reqHospital" required maxlength="200">
@@ -138,6 +146,9 @@ async function submitBloodRequest() {
     const lat = currentUser ? currentUser.latitude : null;
     const lng = currentUser ? currentUser.longitude : null;
 
+    const ageVal = get('reqPatientAge').value ? parseInt(get('reqPatientAge').value, 10) : null;
+    const reqDateVal = get('reqRequiredDate').value || null;
+
     setBusy('reqLoader', 'reqBtnText', true, 'Submitting...');
     try {
         const request = await API.post('/api/requests', {
@@ -150,16 +161,41 @@ async function submitBloodRequest() {
             reason: get('reqReason').value.trim() || null,
             emergency: get('reqEmergency').checked,
             donorId: requestModalPrefill.donorId || null,
+            patientAge: ageVal,
+            requiredDate: reqDateVal,
             latitude: lat,
             longitude: lng,
         });
         showToast('Blood request created! Matching donors have been notified.', 'success');
         requestModal.hide();
+        showMailSuccessModal();
         if (window.onRequestCreated) window.onRequestCreated(request);
     } catch (err) {
         showToast(err.message, 'error');
         setBusy('reqLoader', 'reqBtnText', false, '<i class="bi bi-send-fill me-2"></i>Submit Request');
     }
+}
+
+function showMailSuccessModal() {
+    const existing = document.getElementById('mailSuccessModal');
+    if (existing) existing.remove();
+    const holder = document.createElement('div');
+    holder.innerHTML = `
+        <div class="modal fade" id="mailSuccessModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+                <div class="modal-content text-center p-4">
+                    <div class="mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:72px;height:72px;border-radius:50%;background:var(--green-bg);color:var(--green);font-size:2.2rem"><i class="bi bi-check2-circle"></i></div>
+                    <h5 class="fw-bold">Successfully submitted</h5>
+                    <p class="text-muted small mb-1">Mail sent successfully to donor</p>
+                    <p class="text-muted small mb-3">The donor has been notified via email.</p>
+                    <button class="btn btn-lifelink w-100" data-bs-dismiss="modal">Done</button>
+                </div>
+            </div>
+        </div>`;
+    document.body.appendChild(holder);
+    const modal = new bootstrap.Modal(document.getElementById('mailSuccessModal'));
+    modal.show();
+    document.getElementById('mailSuccessModal').addEventListener('hidden.bs.modal', () => holder.remove());
 }
 
 /* --------------------------- request card rendering --------------------------- */

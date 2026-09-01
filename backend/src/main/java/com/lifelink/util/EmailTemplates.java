@@ -42,6 +42,54 @@ public final class EmailTemplates {
         );
     }
 
+    public static String donorNotificationMail(User donor, BloodRequest request, User requester, Integer patientAge, String requiredDate, Double distanceKm, String acceptToken, String declineToken) {
+        String urgency = request.isEmergency() ? "Emergency" : "Normal";
+        String distanceText = distanceKm == null || distanceKm.isInfinite()
+                ? "Your district"
+                : String.format(Locale.US, "%.1f km from you", distanceKm);
+        String baseUrl = "http://localhost:8080";
+        String acceptUrl = acceptToken != null ? baseUrl + "/api/requests/email-accept?token=" + acceptToken : "http://localhost:3000/request.html";
+        String declineUrl = declineToken != null ? baseUrl + "/api/requests/email-decline?token=" + declineToken : "http://localhost:3000/request.html";
+        return wrapper(
+                "LifeLink Blood Request - " + request.getBloodGroup().getValue(),
+                "<p>Dear " + escape(donor.getName()) + ",</p>"
+                        + "<p>You have received a new blood donation request through LifeLink.</p>"
+                        + "<p style=\"text-align:center;font-weight:800;letter-spacing:1px;color:#b91c1c;\">━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>"
+                        + "<p style=\"text-align:center;font-weight:800;color:#b91c1c;\">🩸 BLOOD REQUEST DETAILS</p>"
+                        + "<p style=\"text-align:center;font-weight:800;letter-spacing:1px;color:#b91c1c;\">━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>"
+                        + "<table width=\"100%\" cellpadding=\"6\" cellspacing=\"0\" style=\"font-size:14px;\">"
+                        + "<tr><td style=\"font-weight:700;width:140px;\">Patient Name</td><td>: " + escape(request.getPatientName()) + "</td></tr>"
+                        + "<tr><td style=\"font-weight:700;\">Patient Age</td><td>: " + orDash(patientAge != null ? String.valueOf(patientAge) : null) + "</td></tr>"
+                        + "<tr><td style=\"font-weight:700;\">Blood Group</td><td>: " + escape(request.getBloodGroup().getValue()) + "</td></tr>"
+                        + "<tr><td style=\"font-weight:700;\">Units Needed</td><td>: " + request.getUnits() + "</td></tr>"
+                        + "<tr><td style=\"font-weight:700;\">Urgency</td><td>: " + escape(urgency) + "</td></tr>"
+                        + "</table>"
+                        + "<p style=\"font-weight:800;margin:18px 0 8px;\">🏥 Hospital Details</p>"
+                        + "<table width=\"100%\" cellpadding=\"6\" cellspacing=\"0\" style=\"font-size:14px;\">"
+                        + "<tr><td style=\"font-weight:700;width:140px;\">Hospital</td><td>: " + escape(request.getHospitalName()) + "</td></tr>"
+                        + "<tr><td style=\"font-weight:700;\">Location</td><td>: " + escape(orDash(request.getHospitalAddress())) + "</td></tr>"
+                        + "<tr><td style=\"font-weight:700;\">Required By</td><td>: " + escape(orDash(requiredDate)) + "</td></tr>"
+                        + "</table>"
+                        + "<p style=\"font-weight:800;margin:18px 0 8px;\">👤 Requester Details</p>"
+                        + "<table width=\"100%\" cellpadding=\"6\" cellspacing=\"0\" style=\"font-size:14px;\">"
+                        + "<tr><td style=\"font-weight:700;width:140px;\">Requester</td><td>: " + escape(requester != null ? requester.getName() : request.getPatientName()) + "</td></tr>"
+                        + "<tr><td style=\"font-weight:700;\">Mobile</td><td>: " + escape(request.getPhone()) + "</td></tr>"
+                        + "<tr><td style=\"font-weight:700;\">Email</td><td>: " + escape(requester != null ? requester.getEmail() : "-") + "</td></tr>"
+                        + "</table>"
+                        + "<p style=\"font-weight:700;margin:18px 0 6px;\">Additional Information:</p>"
+                        + "<p style=\"background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:14px;\">" + escape(orDash(request.getReason())) + "</p>"
+                        + "<p style=\"font-size:12px;color:#6b7280;\">Distance: " + escape(distanceText) + "</p>"
+                        + "<p style=\"text-align:center;font-weight:800;letter-spacing:1px;color:#b91c1c;margin:18px 0;\">━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>"
+                        + "<p style=\"text-align:center;\">"
+                        + "<a href=\"" + acceptUrl + "\" style=\"background:#16a34a;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700;margin-right:10px;\">✅ ACCEPT REQUEST</a>"
+                        + "<a href=\"" + declineUrl + "\" style=\"background:#dc2626;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700;\">❌ DECLINE REQUEST</a>"
+                        + "</p>"
+                        + "<p style=\"color:#6b7280;font-size:13px;text-align:center;\">If you accept the request, please contact the requester using the provided contact details and coordinate the donation.</p>"
+                        + "<p>Thank you for helping save a life. ❤️</p>"
+                        + "<p>Regards,<br><strong>LifeLink</strong><br>Smart Blood Donation System</p>"
+        );
+    }
+
     public static String requestAcceptedToPatient(User donor, BloodRequest request) {
         int arrival = Haversine.estimatedArrivalMinutes(
                 Haversine.distanceKm(request.getPatient().getLatitude(), request.getPatient().getLongitude(),

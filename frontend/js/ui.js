@@ -145,3 +145,12 @@ function distanceText(km) {
     if (km === null || km === undefined) return 'Distance n/a';
     return km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
 }
+
+function setBusy(loaderId, textId, busy, text) {
+    const loader = document.getElementById(loaderId);
+    if (loader) loader.classList.toggle('show', !!busy);
+    const textEl = document.getElementById(textId);
+    if (!textEl) return;
+    if (text) textEl.innerHTML = text;
+    textEl.style.opacity = busy ? 0.6 : 1;
+}
