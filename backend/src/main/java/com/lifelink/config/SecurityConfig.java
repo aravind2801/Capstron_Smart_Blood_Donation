@@ -29,12 +29,22 @@ public class SecurityConfig {
     private final List<String> allowedOrigins;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter,
-                          @Value("${app.cors.allowed-origins:http://localhost:3000}") String allowedOrigins) {
+                          @Value("${app.cors.allowed-origins:http://localhost:3000}") String allowedOrigins,
+                          @Value("${app.frontend-url:http://localhost:3000}") String frontendUrl) {
         this.jwtAuthFilter = jwtAuthFilter;
-        this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
+        // CORS is driven by FRONTEND_URL (production Vercel frontend) plus
+        // app.cors.allowed-origins (env CORS_ALLOWED_ORIGINS).
+        // Local default keeps http://localhost:3000 working.
+        java.util.LinkedHashSet<String> origins = new java.util.LinkedHashSet<>();
+        origins.addAll(Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .toList();
+                .toList());
+        String frontend = frontendUrl != null ? frontendUrl.trim() : "";
+        if (!frontend.isEmpty()) {
+            origins.add(frontend);
+        }
+        this.allowedOrigins = List.copyOf(origins);
     }
 
     @Bean
@@ -80,7 +90,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allowed origins come from app.cors.allowed-origins (env CORS_ALLOWED_ORIGINS).
+        // Allowed origins come from FRONTEND_URL (env FRONTEND_URL) merged with
+        // app.cors.allowed-origins (env CORS_ALLOWED_ORIGINS).
         // Local default includes http://localhost:3000; production must list the
         // deployed Vercel frontend domain. Patterns (not "*") are used so that
         // allowCredentials(true) remains valid for JWT Authorization headers.
