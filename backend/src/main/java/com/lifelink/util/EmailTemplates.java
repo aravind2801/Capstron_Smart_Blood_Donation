@@ -43,13 +43,24 @@ public final class EmailTemplates {
     }
 
     public static String donorNotificationMail(User donor, BloodRequest request, User requester, Integer patientAge, String requiredDate, Double distanceKm, String acceptToken, String declineToken) {
+        return donorNotificationMail(donor, request, requester, patientAge, requiredDate, distanceKm,
+                acceptToken, declineToken, resolveBackendBaseUrl(), resolveFrontendBaseUrl());
+    }
+
+    /**
+     * Builds the donor notification mail using explicit base URLs.
+     * Production callers pass the deployed backend/frontend URLs so emailed
+     * accept/decline links point at Vercel instead of localhost.
+     */
+    public static String donorNotificationMail(User donor, BloodRequest request, User requester, Integer patientAge, String requiredDate, Double distanceKm, String acceptToken, String declineToken, String backendBaseUrl, String frontendBaseUrl) {
         String urgency = request.isEmergency() ? "Emergency" : "Normal";
         String distanceText = distanceKm == null || distanceKm.isInfinite()
                 ? "Your district"
                 : String.format(Locale.US, "%.1f km from you", distanceKm);
-        String baseUrl = "http://localhost:8080";
-        String acceptUrl = acceptToken != null ? baseUrl + "/api/requests/email-accept?token=" + acceptToken : "http://localhost:3000/request.html";
-        String declineUrl = declineToken != null ? baseUrl + "/api/requests/email-decline?token=" + declineToken : "http://localhost:3000/request.html";
+        String baseUrl = normalizeBaseUrl(backendBaseUrl, "http://localhost:8080");
+        String frontendFallback = normalizeBaseUrl(frontendBaseUrl, "http://localhost:3000") + "/request.html";
+        String acceptUrl = acceptToken != null ? baseUrl + "/api/requests/email-accept?token=" + acceptToken : frontendFallback;
+        String declineUrl = declineToken != null ? baseUrl + "/api/requests/email-decline?token=" + declineToken : frontendFallback;
         return wrapper(
                 "LifeLink Blood Request - " + request.getBloodGroup().getValue(),
                 "<p>Dear " + escape(donor.getName()) + ",</p>"
@@ -165,6 +176,27 @@ public final class EmailTemplates {
                 + "<p style=\"margin-top:28px;color:#6b7280;font-size:12px;\">This is an automated message from "
                 + "LifeLink. Please do not reply to this email.</p>"
                 + "</td></tr></table></td></tr></table></body></html>";
+    }
+
+    private static String resolveBackendBaseUrl() {
+        String fromEnv = System.getenv("BACKEND_URL");
+        return (fromEnv == null || fromEnv.isBlank()) ? "http://localhost:8080" : fromEnv.trim();
+    }
+
+    private static String resolveFrontendBaseUrl() {
+        String fromEnv = System.getenv("FRONTEND_URL");
+        return (fromEnv == null || fromEnv.isBlank()) ? "http://localhost:3000" : fromEnv.trim();
+    }
+
+    private static String normalizeBaseUrl(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        String trimmed = value.trim();
+        while (trimmed.endsWith("/")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed.isEmpty() ? fallback : trimmed;
     }
 
     private static String escape(String value) {

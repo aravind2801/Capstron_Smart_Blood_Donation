@@ -32,18 +32,24 @@ public class EmailService {
     private final RestTemplate restTemplate;
     private final String mailServiceUrl;
     private final boolean mailServiceEnabled;
+    private final String backendBaseUrl;
+    private final String frontendBaseUrl;
 
     public EmailService(JavaMailSender mailSender,
                         @Value("${app.email.enabled:false}") boolean enabled,
                         @Value("${app.email.from:LifeLink}") String from,
                         @Value("${app.mail-service.url:http://localhost:3001}") String mailServiceUrl,
-                        @Value("${app.mail-service.enabled:false}") boolean mailServiceEnabled) {
+                        @Value("${app.mail-service.enabled:false}") boolean mailServiceEnabled,
+                        @Value("${app.backend-url:http://localhost:8080}") String backendBaseUrl,
+                        @Value("${app.frontend-url:http://localhost:3000}") String frontendBaseUrl) {
         this.mailSender = mailSender;
         this.enabled = enabled;
         this.from = from;
         this.restTemplate = new RestTemplate();
         this.mailServiceUrl = mailServiceUrl;
         this.mailServiceEnabled = mailServiceEnabled;
+        this.backendBaseUrl = backendBaseUrl;
+        this.frontendBaseUrl = frontendBaseUrl;
     }
 
     public void sendDonationRequestToDonor(String to, com.lifelink.entity.User donor,
@@ -85,7 +91,7 @@ public class EmailService {
         // Try Nodemailer via mail-service first (as requested), fallback to JavaMail
         if (mailServiceEnabled) {
             try {
-                String html = EmailTemplates.donorNotificationMail(donor, request, requester, patientAge, requiredDate, distanceKm, acceptToken, declineToken);
+                String html = EmailTemplates.donorNotificationMail(donor, request, requester, patientAge, requiredDate, distanceKm, acceptToken, declineToken, backendBaseUrl, frontendBaseUrl);
                 Map<String, Object> payload = new HashMap<>();
                 payload.put("to", to);
                 payload.put("donorName", donor.getName());
@@ -114,7 +120,7 @@ public class EmailService {
             }
         }
         send(to, "LifeLink - You have received a blood donation request",
-                EmailTemplates.donorNotificationMail(donor, request, requester, patientAge, requiredDate, distanceKm, acceptToken, declineToken));
+                EmailTemplates.donorNotificationMail(donor, request, requester, patientAge, requiredDate, distanceKm, acceptToken, declineToken, backendBaseUrl, frontendBaseUrl));
     }
 
     public void sendRequestAcceptedToPatient(String to, com.lifelink.entity.User donor, com.lifelink.entity.BloodRequest request) {
