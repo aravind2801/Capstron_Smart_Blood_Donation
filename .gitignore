@@ -32,3 +32,6 @@ node_modules/
 
 # Maven wrapper local dist cache
 .mvn/wrapper/maven-dist/
+
+# Vendored upstream copy - use npm package instead
+nodemailer-master/
